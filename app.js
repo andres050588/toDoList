@@ -26,6 +26,12 @@ const item3 = new Item({
 })
 const defaultItems = [item1, item2, item3];
 
+const listSchema = {
+    name: String,
+    items: [itemsSchema]
+}
+const List = mongoose.model('List', listSchema);
+
 app.get('/', function(req, res){
 
     Item.find({}, function(err, foundItems){
@@ -44,6 +50,28 @@ app.get('/', function(req, res){
     });
 ;
 })
+
+app.get('/:customListPage', function(req, res){
+    const customListPage = req.params.customListPage;
+    List.findOne({name: customListPage}, function(err, foundList){
+        if (!err){
+            if (!foundList){
+                //Create a new list
+                const list = new List({
+                    name: customListPage,
+                    items: defaultItems
+                });
+                list.save();
+                res.redirect('/' + customListPage);
+                console.log(req.params);
+            }else{
+                //Show an existing list
+                res.render('list', {listTitle: foundList.name, newListItems: foundList.items})
+            }
+        }
+    })
+
+});
 
 app.post('/', function(req, res){
     const newItem = req.body.todoItem;
@@ -64,10 +92,6 @@ app.post('/delete', function(req, res){
             res.redirect('/');
         }
     })
-})
-
-app.get('/work', function(req, res){
-    res.render('list', {listTitle: 'Work List', newListItems: workList})
 })
 
 app.get('/about', function(req, res){
