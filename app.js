@@ -63,7 +63,6 @@ app.get('/:customListPage', function(req, res){
                 });
                 list.save();
                 res.redirect('/' + customListPage);
-                console.log(req.params);
             }else{
                 //Show an existing list
                 res.render('list', {listTitle: foundList.name, newListItems: foundList.items})
@@ -75,23 +74,44 @@ app.get('/:customListPage', function(req, res){
 
 app.post('/', function(req, res){
     const newItem = req.body.todoItem;
+    const listName = req.body.list;
+
     const I = new Item({
         toDoItemName: newItem
     });
-    I.save();
-    res.redirect('/');
+
+    if (listName === 'Today'){
+        I.save();
+        res.redirect('/');
+    }else{
+        List.findOne({name: listName}, function(err, foundList){
+            foundList.items.push(I);
+            foundList.save();
+            res.redirect('/' + listName);
+        });
+    }
 });
 
 app.post('/delete', function(req, res){
     const checkedItemId = req.body.checkbox;
-    Item.findByIdAndRemove(checkedItemId, function(err){
-        if (err){
-            console.log(err);
-        }else{
-            console.log('Removed successfully');
-            res.redirect('/');
-        }
-    })
+    const currentList = req.body.currentList;
+    if (currentList === 'Today'){
+        Item.findByIdAndRemove(checkedItemId, function(err){
+            if (err){
+                console.log(err);
+            }else{
+                console.log('Removed successfully');
+                res.redirect('/');
+            }
+        })
+    }else{
+        List.findOneAndUpdate({name: currentList}, {$pull: {items: {_id: checkedItemId}}}, function(err, foundList){
+            if (!err){
+                res.redirect('/' + currentList);
+            }
+        })
+    }
+
 })
 
 app.get('/about', function(req, res){
